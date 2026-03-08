@@ -33,7 +33,12 @@ func NewFTPClient(ip, accessCode, username string, port int, timeout time.Durati
 		user:      username,
 		pass:      accessCode,
 		timeout:   timeout,
-		tlsConfig: &tls.Config{InsecureSkipVerify: true},
+		tlsConfig: &tls.Config{
+			InsecureSkipVerify: true,
+			ClientSessionCache: tls.NewLRUClientSessionCache(0),
+			MaxVersion:         tls.VersionTLS12,
+			ServerName:         ip,
+		},
 	}
 }
 

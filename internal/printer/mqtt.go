@@ -75,18 +75,37 @@ func (m *MQTTClient) onMessage(_ mqtt.Client, msg mqtt.Message) {
 		return
 	}
 
-	m.mu.Lock()
-	for k, v := range doc {
-		existing, ok := m.data[k]
-		vMap, okV := v.(map[string]any)
-		if ok && okV {
-			existingMap, okExisting := existing.(map[string]any)
-			if okExisting {
-				for kk, vv := range vMap {
-					existingMap[kk] = vv
+	// 深度处理函数：递归转换 json.Number 并平铺 print 字段
+	var process func(map[string]any)
+	process = func(data map[string]any) {
+		for k, v := range data {
+			switch val := v.(type) {
+			case json.Number:
+				if f, err := val.Float64(); err == nil {
+					data[k] = f
 				}
-				m.data[k] = existingMap
-				continue
+			case map[string]any:
+				process(val) // 递归处理
+			}
+		}
+	}
+
+	m.mu.Lock()
+	// 1. 全局递归处理类型转换
+	process(doc)
+
+	// 2. 合并数据到 m.data
+	for k, v := range doc {
+		if k == "print" {
+			if printMap, ok := v.(map[string]any); ok {
+				// 将 print 内部内容提升到顶层，并保留别名
+				for pk, pv := range printMap {
+					m.data[pk] = pv
+					// 强制别名映射，确保万无一失
+					if pk == "nozzle_temper" { m.data["nozzle_temp"] = pv }
+					if pk == "bed_temper" { m.data["bed_temp"] = pv }
+					if pk == "chamber_temper" { m.data["chamber_temp"] = pv }
+				}
 			}
 		}
 		m.data[k] = v

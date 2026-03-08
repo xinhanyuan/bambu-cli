@@ -1,0 +1,23 @@
+# github.com/eclipse/paho.mqtt.golang v1.4.3
+## explicit; go 1.18
+github.com/eclipse/paho.mqtt.golang
+github.com/eclipse/paho.mqtt.golang/packets
+# github.com/gorilla/websocket v1.5.0
+## explicit; go 1.12
+github.com/gorilla/websocket
+# github.com/hashicorp/errwrap v1.0.0
+## explicit
+github.com/hashicorp/errwrap
+# github.com/hashicorp/go-multierror v1.1.1
+## explicit; go 1.13
+github.com/hashicorp/go-multierror
+# github.com/jlaffaye/ftp v0.2.0
+## explicit; go 1.17
+github.com/jlaffaye/ftp
+# golang.org/x/net v0.8.0
+## explicit; go 1.17
+golang.org/x/net/internal/socks
+golang.org/x/net/proxy
+# golang.org/x/sync v0.1.0
+## explicit
+golang.org/x/sync/semaphore

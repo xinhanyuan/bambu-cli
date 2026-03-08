@@ -13,17 +13,32 @@ func PayloadLight(on bool) map[string]any {
 }
 
 func PayloadPrintStop() map[string]any {
-	return map[string]any{"print": map[string]any{"command": "stop"}}
+	return map[string]any{
+		"print": map[string]any{
+			"command":     "stop",
+			"sequence_id": "2000", // 必须有序列号
+			"param":       "",     // 某些固件版本要求必须有这个 Key，即使为空
+		},
+	}
 }
 
 func PayloadPrintPause() map[string]any {
-	return map[string]any{"print": map[string]any{"command": "pause"}}
+	return map[string]any{
+		"print": map[string]any{
+			"command":     "pause",
+			"sequence_id": "2001",
+		},
+	}
 }
 
 func PayloadPrintResume() map[string]any {
-	return map[string]any{"print": map[string]any{"command": "resume"}}
+	return map[string]any{
+		"print": map[string]any{
+			"command":     "resume",
+			"sequence_id": "2002",
+		},
+	}
 }
-
 func PayloadGcode(line string) map[string]any {
 	return map[string]any{
 		"print": map[string]any{
