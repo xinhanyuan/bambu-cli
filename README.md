@@ -1,6 +1,6 @@
 # bambu-cli
 
-CLI for controlling BambuLab printers directly over MQTT/FTPS/camera.
+CLI for controlling BambuLab printers directly over MQTT/FTPS/camera/RTSPS.
 
 ## Build
 
@@ -26,6 +26,9 @@ bambu-cli config set --printer lab \
 
 # Status
 bambu-cli status
+
+# Camera snapshot via RTSPS
+bambu-cli camera snapshot-rtsps --out snapshot.png --format png
 
 # Start a print
 bambu-cli print start ./benchy.3mf --plate 1
@@ -64,4 +67,5 @@ In Bambu Studio on macOS: open the Device view for your printer, open its settin
 ## Notes
 
 - Printer must be reachable on ports 8883 (MQTT), 990 (FTPS), 6000 (camera).
+- `camera snapshot-rtsps` requires `ffmpeg`. The CLI checks `--ffmpeg`, `BAMBU_FFMPEG`, Bambu Studio's bundled `cameratools`, then `ffmpeg` in `PATH`.
 - Avoid passing access codes via flags; use `--access-code-file` or `--access-code-stdin`.

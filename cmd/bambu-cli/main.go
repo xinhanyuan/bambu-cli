@@ -836,14 +836,26 @@ func cmdFilesDelete(gf GlobalFlags, args []string) int {
 }
 
 func cmdCamera(gf GlobalFlags, args []string) int {
-	if len(args) == 0 || args[0] != "snapshot" {
+	if len(args) == 0 {
 		printCommandUsage("camera")
 		return 2
 	}
+	switch args[0] {
+	case "snapshot":
+		return cmdCameraSnapshot(gf, args[1:])
+	case "snapshot-rtsps":
+		return cmdCameraSnapshotRTSPS(gf, args[1:])
+	default:
+		printCommandUsage("camera")
+		return 2
+	}
+}
+
+func cmdCameraSnapshot(gf GlobalFlags, args []string) int {
 	fs := flag.NewFlagSet("camera snapshot", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	outPath := fs.String("out", "snapshot.jpg", "output file path or - for stdout")
-	if err := fs.Parse(args[1:]); err != nil {
+	if err := fs.Parse(args); err != nil {
 		return errExit(err)
 	}
 
@@ -858,6 +870,59 @@ func cmdCamera(gf GlobalFlags, args []string) int {
 	}
 	cam := printer.NewCameraClient(res.IP, res.AccessCode, res.Username, res.CameraPort, res.Timeout)
 	img, err := cam.Snapshot()
+	if err != nil {
+		return errExit(err)
+	}
+
+	if *outPath == "-" {
+		if ui.IsTerminal(os.Stdout) && !gf.Force {
+			return errExit(errors.New("refusing to write binary data to terminal; use --force or --out <file>"))
+		}
+		_, err = os.Stdout.Write(img)
+		return exitOnErr(err)
+	}
+	return exitOnErr(os.WriteFile(*outPath, img, 0o644))
+}
+
+func cmdCameraSnapshotRTSPS(gf GlobalFlags, args []string) int {
+	fs := flag.NewFlagSet("camera snapshot-rtsps", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	outPath := fs.String("out", "snapshot.jpg", "output file path or - for stdout")
+	format := fs.String("format", "", "output image format: jpg or png")
+	jpegQuality := fs.Int("jpeg-quality", 1, "JPEG quality from 1 (best) to 31 (worst)")
+	ffmpegPath := fs.String("ffmpeg", "", "ffmpeg binary path")
+	transport := fs.String("transport", "tcp", "RTSP transport: tcp or udp")
+	keyframe := fs.Bool("keyframe", true, "capture the next keyframe for cleaner output")
+	if err := fs.Parse(args); err != nil {
+		return errExit(err)
+	}
+
+	if gf.DryRun {
+		fmt.Fprintf(os.Stdout, "Would take RTSPS snapshot to %s\n", *outPath)
+		return 0
+	}
+
+	res, err := resolvePrinter(gf, true, false)
+	if err != nil {
+		return errExit(err)
+	}
+	streamURL, err := printer.BuildRTSPSURL(res.IP, res.AccessCode, res.Username)
+	if err != nil {
+		return errExit(err)
+	}
+	binPath, err := printer.ResolveFFmpegPath(*ffmpegPath)
+	if err != nil {
+		return errExit(err)
+	}
+	img, err := printer.SnapshotRTSPS(binPath, printer.RTSPSnapshotOptions{
+		URL:         streamURL,
+		OutputPath:  *outPath,
+		Format:      *format,
+		JPEGQuality: *jpegQuality,
+		Transport:   *transport,
+		Keyframe:    *keyframe,
+		Timeout:     res.Timeout,
+	})
 	if err != nil {
 		return errExit(err)
 	}
@@ -1589,6 +1654,7 @@ func printUsage() {
 	fmt.Fprintln(os.Stdout, "  print start|pause|resume|stop")
 	fmt.Fprintln(os.Stdout, "  files list|upload|download|delete")
 	fmt.Fprintln(os.Stdout, "  camera snapshot        Save camera frame")
+	fmt.Fprintln(os.Stdout, "  camera snapshot-rtsps  Save camera frame via RTSPS")
 	fmt.Fprintln(os.Stdout, "  gcode send             Send gcode line(s)")
 	fmt.Fprintln(os.Stdout, "  ams status             Show AMS status")
 	fmt.Fprintln(os.Stdout, "  calibrate              Run calibration")
@@ -1641,6 +1707,7 @@ func printCommandUsage(cmd string) {
 		fmt.Fprintln(os.Stdout, "       bambu-cli files delete <remote>")
 	case "camera":
 		fmt.Fprintln(os.Stdout, "USAGE: bambu-cli camera snapshot [--out <path|->]")
+		fmt.Fprintln(os.Stdout, "       bambu-cli camera snapshot-rtsps [--out <path|->] [--format jpg|png] [--jpeg-quality <1-31>]")
 	case "gcode":
 		fmt.Fprintln(os.Stdout, "USAGE: bambu-cli gcode send <line...> | --stdin")
 	case "ams":
